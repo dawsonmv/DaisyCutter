@@ -1,0 +1,80 @@
+<<<<<<< local
+__author__ = 'Dawson Valdes'
+
+import socket
+import DaisyCutter
+import sqlite3
+import multiprocessing.reduction
+
+# demo use case
+
+# define your own handler function
+
+
+def db_thread(sql, cs):
+    cs.shutdown(socket.SHUT_RD)
+    conn = sqlite3.connect("acme.db")
+    c = conn.cursor()
+    r = list()
+    for com in sql:
+        c.execute(com)
+        r.append(c.fetchall())
+    conn.commit()
+    conn.close()
+    cs.send(r)
+    cs.close()
+
+
+host_ip = "127.0.0.1"
+host_port = 1489
+socket_buffer = 10
+
+print("binding to {0}:{1}").format(host_ip, host_port)
+
+try:
+    dc = DaisyCutter.DaisyCutter(db_thread)
+    dc.deploy(host_ip, host_port, socket_buffer)
+except DaisyCutter.DaisyError as err:
+    print("Error has occurred in DaisyCutter: {1) : {2}").format(err.error_type, err.error_message)=======
+__author__ = 'Dawson Valdes'
+
+from daisycutter import DaisyCutter
+import sqlite3
+import json
+import zlib
+import socket
+
+# demo use case
+
+# DaisyCutter request function always gets passed a bytearray and must return a string
+
+def db_thread(data):
+    data_obj = zlib.decompress(str(data))
+    sql_obj = json.JSONDecoder.decode(data_obj)
+    conn = sqlite3.connect("acme.db")
+    cur = conn.cursor()
+    req = list()
+    for req in sql_obj:
+        com = str("select {0} from accounts where {1} and {2}").format(req.name, req.id, req.password)
+        cur.execute(com)
+        req.append(cur.fetchall())
+    conn.commit()
+    conn.close()
+    sql_obj = json.JSONEncoder().encode(req)
+    data_obj = zlib.compress(sql_obj)
+    return data_obj
+
+socket_family = socket.AF_INET
+socket_type = socket.SOCK_STREAM
+host_ip = "127.0.0.1"
+host_port = 1489
+socket_buffer = 10
+
+print("binding to {0}:{1}").format(host_ip, host_port)
+print("starting a {0} server, listening for {1} connections").format(socket_family, socket_type)
+
+try:
+    dc = DaisyCutter.DaisyCutter(db_thread, socket_family, socket_type)
+    dc.deploy(host_ip, host_port, socket_buffer)
+except DaisyCutter.DaisyError as err:
+    print("Error has occurred in DaisyCutter: {1) : {2}").format(err.error_type, err.error_message)>>>>>>> other
